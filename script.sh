@@ -82,7 +82,8 @@ version(){
 do_test(){
   local n="$1"
   local url="$2"
-  local host="$4"
+  local host="$3"
+  local delay="$4"
 
   for i in $(seq 1 $n); do
     echo "$i" > /dev/null
@@ -92,16 +93,22 @@ do_test(){
     else
       curl --silent -I "$url"
     fi
+
+    sleep "$delay"
   done
 }
 
 main() {
-  local host n url
+  local delay host n url
   # Define args up here
   while [ "$1" != "" ]; do
     local param="$1"
     local value="$2"
     case "$param" in
+      -d | --delay)
+        delay="$value"
+        shift
+        ;;
       -h | --help)
         usage
         exit 0
@@ -145,12 +152,13 @@ main() {
   done
 
   n=${n:-1000}
+  delay=${delay:-0}
 
   assert_required_params "$url"
 
-  do_test "$n" "$url" "$host" \
+  do_test "$n" "$url" "$host" "$delay" \
   | grep --line-buffered 'HTTP/1' \
-  | pv --line-mode --size "$n" --average-rate --rate --progress --timer --eta --force \
+  | pv --line-mode --size "$n" --average-rate --rate --progress --bytes --timer --eta --force \
   | grep --line-buffered --invert-match '200'
 }
 
